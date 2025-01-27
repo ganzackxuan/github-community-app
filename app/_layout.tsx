@@ -1,18 +1,29 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { Provider } from 'react-redux';
+import React, { useEffect } from 'react';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import HomeScreen from './(tabs)';
+import DetailsScreen from './(tabs)/details';
+import store from '../hooks/store.js';
+
+const RootStack = createNativeStackNavigator();
+
+function Navigation() {
+  return (
+    <RootStack.Navigator>
+      <RootStack.Screen name="Home" component={HomeScreen}
+      options={{ headerShown: false }}/>
+      <RootStack.Screen name="Details" component={DetailsScreen} />
+    </RootStack.Navigator>
+  );
+}
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -28,12 +39,8 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <Provider store={store}>
+      <Navigation />
+    </Provider>
   );
 }

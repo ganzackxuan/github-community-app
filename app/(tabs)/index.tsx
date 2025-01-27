@@ -1,74 +1,101 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, FlatList, TouchableOpacity, TextInput, SafeAreaView, StyleSheet } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchReposRequest } from '../../hooks/action';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
+import { NavigationProp } from '@react-navigation/native';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+export default function HomeScreen({ navigation }: { navigation: NavigationProp<any> }) {
+  const { repos, isLoading } = useSelector((state: { repos: any; }) => state.repos);
+  const [searchValue, setSearchValue] = useState('');
+  const [page, setPage] = useState(1);
+  const dispatch = useDispatch();
 
-export default function HomeScreen() {
+  const fetchData = useCallback(
+    (value: string, p: number) => {
+      dispatch(fetchReposRequest(value, p));
+    },
+    [dispatch]
+  );
+
+  const search = useCallback(
+    (value: string) => {
+      setPage(1); // Reset page for new search
+      fetchData(value, 1); // Pass the updated value directly
+    },
+    [fetchData]
+  );
+
+  const handleEndReached = useCallback(() => {
+    if (!isLoading) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchData(searchValue, nextPage);
+    }
+  }, [isLoading, page, fetchData, searchValue]);
+
+  useEffect(() => {
+    search(''); // Initial fetch with an empty search value
+  }, [search]);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <SafeAreaView>
+      <View style={{ flexDirection: 'row' }}>
+        <TextInput
+          style={styles.inputField}
+          placeholder="Type something"
+          placeholderTextColor="#ababab"
+          onChangeText={(value) => setSearchValue(value)} // Update the local state
+          onEndEditing={() => search(searchValue)} // Pass the current value of `searchValue`
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <TouchableOpacity style={styles.searchBtn} onPress={() => search(searchValue)}>
+          <FontAwesomeIcon icon={faMagnifyingGlass} color="#ffffff" />
+        </TouchableOpacity>
+      </View>
+      {isLoading && page === 1 ? (
+        <Text style={{ textAlign: 'center', padding: 6 }}>Loading...</Text>
+      ) : (
+        <FlatList
+          data={repos}
+          keyExtractor={(item) => item.id.toString()}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.repoContainer}
+              onPress={() => navigation.navigate('Details', item)}
+            >
+              <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{item.name}</Text>
+              <Text style={{ marginTop: 8 }}>{item.description}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  inputField: {
+    borderWidth: 1,
+    borderColor: '#000000',
+    borderRadius: 25,
+    marginHorizontal: 6,
+    padding: 12,
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  searchBtn: {
+    backgroundColor: '#000000',
+    borderRadius: 25,
+    marginHorizontal: 6,
+    padding: 12,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  repoContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#ababab',
+    marginHorizontal: 8,
+    marginVertical: 10,
+    padding: 10,
   },
 });
